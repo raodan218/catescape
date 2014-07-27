@@ -1,0 +1,842 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <title> Cat Escape </title>
+  <meta charset="UTF-8">
+  <script type='text/javascript' src="jquery-1.11.1.min.js"></script>
+  <script type='text/javascript'> 
+  
+  // Map position X start from 0 from left
+  // Map position Y start from 0 from top
+  
+  var enableMark = false;
+  
+  // orader: "cat" "ai"
+  var startOrder = "ai";
+  var currentOrder = null;
+  
+  // mode: "computer" "human"
+  var mode = "computer"
+  
+  // Matrix dimension should be odd
+  var MATRIX_DIMENSION=9;
+  
+  // Class to present the block
+  function Block(x, y) {
+
+    if (x != null && x!= "undefined" && y != null && y!= "undefined") {
+      this.x = x;
+	  this.y = y;
+	  this.dom = getBlockDom(x, y);
+	}
+	else {
+	  this.x = null;
+	  this.y = null;
+	  this.dom = null;
+	}
+	
+	this.isCat = function () {
+	  return this.dom.hasClass("cat");
+	};
+	
+	this.isClicked = function () {
+	  return this.dom.hasClass("clicked");
+	};
+	
+	this.setClicked = function () {
+	  if (this.dom != null && !this.isCat()) {
+	    this.dom.addClass("clicked");
+	  }
+	};
+	
+	this.isBoundaryBlock = function () {
+	  if ((x==0) || (y==0) || (x==MATRIX_DIMENSION-1) || (y==MATRIX_DIMENSION-1)) {
+	    return true;
+	  }
+	  return false;
+	};
+	
+	this.mark = function(step) {
+      if (this.dom != null) {
+        this.dom.html('<div class="mark">' + step + '</div>');
+      }
+	};
+	
+	this.clear = function() {
+	  this.dom.removeClass();
+	};
+
+	this.getOffsetLeftX = function(step) {
+	  return Math.floor((step+((Math.abs(this.y)+1)%2))/2);
+	};
+
+	this.getOffsetRightX = function(step) {
+      return Math.floor((step+((Math.abs(this.y))%2))/2);
+	};
+
+	this.getOffsetY = function(step) {
+      return step;
+	};
+
+	this.getTopLeftBlock = function(step) {
+	  var topLeftX = this.x - this.getOffsetLeftX(step);
+	  var topLeftY = this.y - this.getOffsetY(step); 
+	  return new Block(topLeftX, topLeftY);
+	};
+	
+	this.getTopRightBlock = function(step) {
+	  var topRightX = this.x + this.getOffsetRightX(step);
+	  var topRightY = this.y - this.getOffsetY(step);
+	  return new Block(topRightX, topRightY);
+	};
+	
+	this.getRightBlock = function(step) {
+	  var rightX = this.x + step;
+	  var rightY = this.y;
+	  return new Block(rightX, rightY);
+	};
+
+	this.getBottomRightBlock = function(step) {
+	  var bottomRightX = this.x + this.getOffsetRightX(step);
+	  var bottomRightY = this.y + this.getOffsetY(step);
+	  return new Block(bottomRightX, bottomRightY);
+	};
+
+	this.getBottomLeftBlock = function(step) {
+	  var bottomLeftX = this.x - this.getOffsetLeftX(step);
+	  var bottomLeftY = this.y + this.getOffsetY(step);
+	  return new Block(bottomLeftX, bottomLeftY);
+	};
+
+    this.getLeftBlock = function(step) {
+	  var leftX = this.x - step;
+	  var leftY = this.y;
+	  return new Block(leftX, leftY);
+	};
+
+	this.getTopLine = function(step) {
+	  var topLine = new Array();
+	  var topLeftBlock = this.getTopLeftBlock(step);
+	  for (var i=0; i<=step; ++i) {
+	    var blockX = topLeftBlock.x+i;
+		var blockY = topLeftBlock.y;
+		topLine[i] = new Block(blockX, blockY);
+	  }
+	  return topLine;
+	};
+	
+	this.getTopRightLine = function(step) {
+      var topRightLine = new Array();
+      var topRightBlock = this.getTopRightBlock(step);
+      topRightLine[0] = topRightBlock;
+	  for (var i=1; i<=step; ++i) {
+        topRightLine[i] = topRightLine[i-1].getBottomRightBlock(1);
+	  }
+	  return topRightLine;
+	};
+	
+	this.getBottomRightLine = function(step) {
+	  var bottomRightLine = new Array();
+	  var rightBlock = this.getRightBlock(step);
+	  bottomRightLine[0] = rightBlock;
+	  for (var i=1; i<=step; ++i) {
+	    bottomRightLine[i] = bottomRightLine[i-1].getBottomLeftBlock(1);
+	  }
+	  return bottomRightLine;
+	};
+
+	this.getBottomLine = function(step) {
+	  var bottomLine = new Array();
+	  var bottomRightBlock = this.getBottomRightBlock(step);
+	  bottomLine[0] = bottomRightBlock;
+	  for (var i=1; i<=step; ++i) {
+	    bottomLine[i] = bottomLine[i-1].getLeftBlock(1);
+	  }
+	  return bottomLine;
+	};
+	
+	this.getBottomLeftLine = function(step) {
+	  var bottomLeftLine = new Array();
+	  var bottomLeftBlock = this.getBottomLeftBlock(step);
+	  bottomLeftLine[0] = bottomLeftBlock;
+	  for (var i=1; i<=step; ++i) {
+	    bottomLeftLine[i] = bottomLeftLine[i-1].getTopLeftBlock(1);
+	  }
+	  return bottomLeftLine;
+	};
+	
+	this.getTopLeftLine = function(step) {
+	  var topLeftLine = new Array();
+	  var leftBlock = this.getLeftBlock(step);
+	  topLeftLine[0] = leftBlock;
+	  for (var i=1; i<=step; ++i) {
+	    topLeftLine[i] = topLeftLine[i-1].getTopRightBlock(1);
+	  }
+	  return topLeftLine;
+	};
+	
+	this.getHexagon = function(step) {
+	  var hexagon = new Array();
+	  var topLeftBlock = this.getTopLeftBlock(step);
+	  hexagon[0]=topLeftBlock;
+	  for (var i=1; i<step*6; ++i) {
+	    if (Math.floor((i-1)/step) == 0) {
+          hexagon[i] = hexagon[i-1].getRightBlock(1);
+		}
+	    else if (Math.floor((i-1)/step) == 1) {
+          hexagon[i] = hexagon[i-1].getBottomRightBlock(1);
+		}
+	    else if (Math.floor((i-1)/step) == 2) {
+          hexagon[i] = hexagon[i-1].getBottomLeftBlock(1);
+		}
+	    else if (Math.floor((i-1)/step) == 3) {
+          hexagon[i] = hexagon[i-1].getLeftBlock(1);
+		}
+	    else if (Math.floor((i-1)/step) == 4) {
+          hexagon[i] = hexagon[i-1].getTopLeftBlock(1);
+		}
+	    else if (Math.floor((i-1)/step) == 5) {
+          hexagon[i] = hexagon[i-1].getTopRightBlock(1);
+		}
+	  }	  
+	  return hexagon;
+	};
+
+	this.stepToBlock = function(target) {
+	  var step = Math.abs(target.y - this.y);
+	  do {
+	      var hexagon = this.getHexagon(step);
+		  for (var i=0; i<hexagon.length; ++i) {
+		     if (hexagon[i].x == target.x && hexagon[i].y == target.y) {
+			   break;
+			 }
+		  }
+		  if (i == hexagon.length) {
+		    ++step;
+		  }
+		  else {
+		    break;
+		  }
+	  } while (true);  
+	  return step;
+	};
+	
+	this.getShortestStep = function() {
+      var shortestX = (this.x) < (MATRIX_DIMENSION-1-this.x) ? this.x : (MATRIX_DIMENSION-1-this.x);
+	  var shortestY = (this.y) < (MATRIX_DIMENSION-1-this.y) ? this.y : (MATRIX_DIMENSION-1-this.y);
+      return (shortestX <shortestY ? shortestX : shortestY);
+	};
+	
+    this.getLongestStep = function() {
+	  var longestStep = null;
+      var centerX = Math.floor(MATRIX_DIMENSION/2);
+	  var centerY = Math.floor(MATRIX_DIMENSION/2);
+	  if (x <= centerX && y <= centerY) {
+	    longestStep = this.stepToBlock(new Block(MATRIX_DIMENSION-1, MATRIX_DIMENSION-1)); 
+	  }
+	  else if (x <= centerX && y > centerY) {
+	    longestStep = this.stepToBlock(new Block(MATRIX_DIMENSION-1, 0)); 
+	  }
+	  else if (x > centerX && y > centerY) {
+	    longestStep = this.stepToBlock(new Block(0, 0)); 
+	  }
+	  else if (x > centerX && y <= centerY) {
+	    longestStep = this.stepToBlock(new Block(0, MATRIX_DIMENSION-1)); 
+	  }
+	  
+	  return longestStep;
+	};
+
+	this.checkTarget = function (targetX, targetY){
+      var target = new Block(targetX, targetY);
+	  if (target.isClicked()) {
+	    //alert("Can't move to clicked block!");
+        $("#movecover").show();
+		return false;
+	  }
+	  if (this.stepToBlock(target) > 1) {
+	    //alert("you cat only move to nearby block!");
+	    $("#movecover").show();
+        return false;
+	  }
+	  return true;
+    };
+	
+	this.blockToLine = function (target) {
+	  var step = this.stepToBlock(target);
+	  var line = null;
+	  do {
+	    var topLine = this.getTopLine(step);
+		if (isBlockOnLine(target, topLine)){
+		  line = topLine;
+		  break;
+		}
+	    var topRightLine = this.getTopRightLine(step);
+		if (isBlockOnLine(target, topRightLine)){
+		  line = topRightLine;
+		  break;
+		}
+	    var bottomRightLine = this.getBottomRightLine(step);
+		if (isBlockOnLine(target, bottomRightLine)){
+		  line = bottomRightLine;
+		  break;
+		}
+	    var bottomLine = this.getBottomLine(step);
+		if (isBlockOnLine(target, bottomLine)){
+		  line = bottomLine;
+		  break;
+		}
+	    var bottomLeftLine = this.getBottomLeftLine(step);
+		if (isBlockOnLine(target, bottomLeftLine)){
+		  line = bottomLeftLine;
+		  break;
+		}
+	    var topLeftLine = this.getTopLeftLine(step);
+		if (isBlockOnLine(target, topLeftLine)){
+		  line = topLeftLine;
+		  break;
+		}
+	  } while (false);
+      return line;
+	};
+
+    this.pathToBlock = function (target) {
+	  var step = this.stepToBlock(target);
+	  var paths = new Array();
+//	  console.debug("target: X=" + target.x + ", Y=" + target.y);
+//	  console.debug("step: " + step);
+	  if (step == 1) {
+	    var path = new Array();
+		path.push(target);
+		path.push(this);
+	    paths.push(path);
+	  }
+	  else {
+	 	var blocks = this.getHexagon(1);
+        for (var i=0; i<blocks.length; ++i) {
+          if (blocks[i].stepToBlock(target) == step-1 && !blocks[i].isClicked()) {
+            var subpaths = blocks[i].pathToBlock(target);
+			for (var j=0; j<subpaths.length; ++j) {
+			  var path = subpaths[j];
+			  path.push(this);
+			  paths.push(path);
+			}
+		  }
+		}
+	  }
+	  return paths;
+	};
+
+	this.pathToLine = function (target) {
+	  var step = this.stepToBlock(target);
+	  var paths = new Array();
+      var line = this.blockToLine(target);
+	  
+	  for (var i=0;i<line.length;++i) {
+        var pathToBlock = this.pathToBlock(line[i]);
+		for (var j=0; j<pathToBlock.length; j++) {
+		  paths.push(pathToBlock[j]);
+		}
+	  }
+	  return paths;
+	};
+	
+    this.getBoundaryLine = function (step) {
+	  var line = null;
+	  var count = null;
+	  var topLine = checkBoundaryLine(this.getTopLine(step));
+	  var topRightLine = checkBoundaryLine(this.getTopRightLine(step));
+	  var bottomRightLine = checkBoundaryLine(this.getBottomRightLine(step));
+	  var bottomLine = checkBoundaryLine(this.getBottomLine(step));
+	  var bottomLeftLine = checkBoundaryLine(this.getBottomLeftLine(step));
+	  var topLeftLine = checkBoundaryLine(this.getTopLeftLine(step));
+	  line = topLine;
+	  count =  topLine.length;
+	  if (count < bottomLine.length) {
+	    line = bottomLine;
+		count = bottomLine.length;
+	  }
+	  if (count < topRightLine.length) {
+	    line = topRightLine;
+		count = topRightLine.length;
+	  }
+	  if (count < bottomRightLine.length) {
+	    line = bottomRightLine;
+		count = bottomRightLine.length;
+	  }
+	  if (count < bottomLeftLine.length) {
+	    line = bottomLeftLine;
+		count = bottomLeftLine.length;
+	  }
+	  if (count < topLeftLine.length) {
+	    line = topLeftLine;
+		count = topLeftLine.length;
+	  }
+	  
+	  return line;
+	}
+	
+	this.findBestWay = function () {
+	  var offsetX = this.x > Math.abs(MATRIX_DIMENSION - 1 - this.x ) ? Math.abs(MATRIX_DIMENSION - 1 - this.x ) : this.x;
+	  var offsetY = this.y > Math.abs(MATRIX_DIMENSION - 1 - this.y ) ? Math.abs(MATRIX_DIMENSION - 1 - this.y ) : this.y;
+	  var offset =  offsetX < offsetY ? offsetX : offsetY;
+	  var nextBlock = null;
+	  var line = this.getBoundaryLine(offset);
+	  if (line.length > 0) {
+	    var path = this.pathToBlock(line[0]);
+	    for (var i=1;i<line.length; ++i) {
+	      p = this.pathToBlock(line[i]);
+		  if (p.length > path.length) {
+		    path = p;
+		  }
+	    }
+		if (path.length > 0) {
+          //markArea(path[0], "p");
+	      nextBlock = path[0][0];
+		}
+	  }
+	  if (nextBlock == null) {
+	    // No boundary, find another way
+	    var empty = getEmptyBoundaryBlocks();
+		if (empty.length <= 0) {
+		  //alert("No way out!");
+		  $("#endcover").show();
+		  return;
+		}
+	    //clearBlockStepMark();
+    	//markArea(empty, 'e');
+		var step = -1;
+		for (var i=0;i<empty.length; ++i) {
+		  var t = this.stepToBlock(empty[i]);
+		  if (step == -1 || (t<step)) {
+		    step = t;
+			nextBlock = empty[i];
+		  }
+		}
+	  }
+	  if (nextBlock == null) {
+        //alert("Error!");
+	    initBlock();
+		$("#startcover").show();
+		return;
+	  }	
+	  nextBlock.setClicked();
+	}; 
+	
+  }
+  
+  function markArea(area, mark) {
+    for (var i=0; i<area.length; ++i) {
+	  area[i].mark(mark);
+	}
+  }
+  
+  function isBlockOnLine(block, line) {
+    var isOnLine = false;
+	for (var i=0; i<line.length; ++i) {
+	  if ((line[i].x == block.x) && (line[i].y == block.y)) {
+	    isOnLine = true;
+	  }
+	}
+	return isOnLine;
+  }
+  
+  // Get the block by X and Y
+  function getBlockDom(x, y) {
+    var blockDom = null;
+	if (x<MATRIX_DIMENSION && y<MATRIX_DIMENSION && x >= 0 && y >= 0) {
+	  blockDom = $("#catescape ul:eq(" + y + ") li:eq(" + x + ")");
+	}
+    return blockDom;
+  }
+  
+  // Initial postion of cat is in the center
+  function initCat() {
+    var clickedBlockCount = 16;
+    var initX = Math.floor(MATRIX_DIMENSION/2);
+    var initY = Math.floor(MATRIX_DIMENSION/2);
+    $("#catescape ul li").removeClass();
+	catMove(initX, initY);
+	// Generate random clicked block
+	for (var i=0; i<clickedBlockCount; ++i) {
+	  var random = randomBlock();
+	  if (!random.isCat()) {
+	    random.setClicked();
+	  }
+	  else {
+	    --i;
+	  }
+	}
+  }
+  
+  function randomBlock() {
+    var blockX = Math.floor((Math.random()*MATRIX_DIMENSION));
+    var blockY = Math.floor((Math.random()*MATRIX_DIMENSION));
+	return new Block(blockX, blockY);
+  }
+  
+  // Event handler for <ul> <li> block is clicked
+  function onBlockClicked() {
+    var targetX = $(this).index();
+    var targetY = $(this).parent().index();
+    if (currentOrder == "cat") {
+      if (!getCatBlock().checkTarget(targetX, targetY)) {
+	    return;
+      }
+      catMove(targetX, targetY);
+	  if (new Block(targetX, targetY).isBoundaryBlock()) {
+	    //alert("You win!");
+	    $("#wincover").show();
+		return;
+	  }
+      setCurrentOrder("ai");
+      if (mode=="computer") {
+        aiExecuteEntry();		
+      }
+      return;
+    }
+    else if (currentOrder == "ai") {
+      humanSetClickedBlock(targetX, targetY);
+      return;
+	}  
+  }
+  
+  function initBlock() {
+    var catescape = $("#catescape");
+	catescape.html("");
+	for(var i=0; i<MATRIX_DIMENSION; ++i) {
+      var ul=$("<ul></ul>");
+	  if (i%2!=0) {
+	    ul.addClass("padding");
+	  }
+	  for(var j=0; j<MATRIX_DIMENSION; ++j) {
+	    var li=$("<li></li>");
+	    li.click(onBlockClicked);
+	    ul.append(li);
+	  }
+	  catescape.append(ul);
+	}
+    catescape.ready(function() {
+	  initCat();	
+	  startGame();
+	});
+
+  }
+  
+  function getBoundaryBlocks() {
+    var boundaryBlocks = new Array();
+	var blockX = 0;
+	var blockY = 0;
+	for (var i=0; i<MATRIX_DIMENSION-1; ++i) {
+	  var block = new Block(++blockX, blockY);
+	  boundaryBlocks.push(block);
+	}
+	for (var i=0; i<MATRIX_DIMENSION-1; ++i) {
+	  var block = new Block(blockX, ++blockY);
+	  boundaryBlocks.push(block);
+	}
+	for (var i=0; i<MATRIX_DIMENSION-1; ++i) {
+	  var block = new Block(--blockX, blockY);
+	  boundaryBlocks.push(block);
+	}
+	for (var i=0; i<MATRIX_DIMENSION-1; ++i) {
+	  var block = new Block(blockX, --blockY);
+	  boundaryBlocks.push(block);
+	}
+	return boundaryBlocks;
+  }
+  
+  function getEmptyBoundaryBlocks() {
+    var emptyBoundaryBlocks = new Array();
+	var boundaryBlocks = getBoundaryBlocks();
+	for (var i=0; i<boundaryBlocks.length; ++i) {
+	  if (!boundaryBlocks[i].isClicked()){
+	    emptyBoundaryBlocks.push(boundaryBlocks[i]);
+	  }
+	}
+	return emptyBoundaryBlocks;
+  }
+
+  function getClickedBoundaryBlocks() {
+    var clickedBoundaryBlocks = new Array();
+	var boundaryBlocks = getBoundaryBlocks();
+	for (var i=0; i<boundaryBlocks.length; ++i) {
+	  if (boundaryBlocks[i].isClicked()){
+	    clickedBoundaryBlocks.push(boundaryBlocks[i]);
+	  }
+	}
+	return clickedBoundaryBlocks;
+  }
+  
+  function getEmptyBlocks() {
+    var emptyBlocks = new Array();
+	for (var i=0;i<MATRIX_DIMENSION;++i) {
+	  for (var j=0;j<MATRIX_DIMENSION;++j) {
+        var block = new Block(i, j);
+		if (!block.isClicked()) {
+		  emptyBlocks.push(block);
+		}
+	  }	
+	}
+	return emptyBlocks;
+  }
+
+  function getClickedBlocks() {
+    var clickedBlocks = new Array();
+	for (var i=0;i<MATRIX_DIMENSION;++i) {
+	  for (var j=0;j<MATRIX_DIMENSION;++j) {
+        var block = new Block(i, j);
+		if (block.isClicked()) {
+		  clickedBlocks.push(block);
+		}
+	  }	
+	}
+	return clickedBlocks;
+  }
+
+  function checkBoundaryLine(line) {
+    var emptyBlockOfLine = new Array();
+	for (var i=0; i<line.length; ++i) {
+	  if (line[i].isBoundaryBlock() && !line[i].isClicked()){
+	    emptyBlockOfLine.push(line[i]);
+	  }
+	}
+	return emptyBlockOfLine;   
+  };
+
+  function setCurrentOrder(order) {
+    currentOrder = order;
+    $("#order span").html(order);
+  }
+  
+  function startGame() {
+    currentOrder=startOrder;
+	if (currentOrder=="ai") {
+      if (mode=="computer") {
+	    // Enter ai move entry
+        aiExecuteEntry();		
+      }
+	  else if (mode=="human") {
+        // Wait human move
+      }
+	}
+	else if (currentOrder=="cat") {
+	  // Wait cat move
+	}
+  }
+  
+  function aiExecuteEntry() {
+	var cat = getCatBlock();
+	cat.findBestWay();
+	// Next order should be cat
+    setCurrentOrder("cat");
+  }
+  
+  function humanSetClickedBlock(targetX, targetY) {
+    new Block(targetX, targetY).setClicked();
+    setCurrentOrder("cat");
+  }
+  
+  // Get the cat block
+  function getCatBlock() {
+    var block = null;;
+    var cat = $("#catescape ul .cat");
+	if (cat.length > 0) {
+	  block = new Block(cat.index(), cat.parent().index());
+	}
+	return block;
+  }
+ 
+  // Move cat to position
+  function catMove(x, y) {
+    $("#catescape ul .cat").removeClass().html("");
+	if (x<MATRIX_DIMENSION && y<MATRIX_DIMENSION && x >= 0 && y >= 0) {
+	  var dom = $("#catescape ul:eq(" + y + ") li:eq(" + x + ")");
+	  var crazycat = $("<div id=\"crazycat\"></div>").click(function() {
+		return false;
+	  });
+	  dom.removeClass().addClass("cat");
+	  dom.ready(function(){
+	    dom.append(crazycat);
+	  });
+	}
+	showBlockStepMark();
+  }
+  
+  function clearBlockStepMark() {
+    $("#catescape ul li").html("");
+  }
+  
+  // The step from cat to given position 
+  function showBlockStepMark() {
+    if (!enableMark) {
+	  return;
+	}
+	var catBlock = getCatBlock();
+	//console.debug("Cat at: x=" + catBlock.x + ", y=" + catBlock.y);
+	for (var i=0; i<=catBlock.getLongestStep(); ++i) {
+	  var hexagon = catBlock.getHexagon(i);
+      for (var j=0; j<hexagon.length; ++j) {
+        hexagon[j].mark(i);
+      }
+	}
+  }
+  
+  // ---- Global entry ----
+  $(document).ready(function() {
+	
+    $("#reset").click(function(){
+	  initBlock();
+    });
+
+	$("#showmark").click(function(){
+	  enableMark = !enableMark;
+	  if (enableMark) {
+	    showBlockStepMark();
+        $(this).html("Hide Mark");
+      }
+	  else {
+	  	clearBlockStepMark();
+	    $(this).html("Show Mark");
+	  }
+    });
+    $("#startgame").click(function(){
+      $("#startcover").hide();
+    });
+	$("#replaygame").click(function(){
+      $("#endcover").hide();
+	  initBlock();
+    });
+	$("#wingame").click(function(){
+      $("#wincover").hide();
+	  initBlock();
+    });
+	$("#movegame").click(function(){
+      $("#movecover").hide();
+    });
+	
+	initBlock();
+	
+  });
+  </script>
+  <style>
+    #catescape {
+	  padding: 340px 0px 0px 80px;
+	}
+    #catescape ul {
+	  padding: 0px;
+	  margin: 0px;
+    }
+    #catescape li {
+      width:50px;
+      height:50px;
+	  list-style-type:none;
+      display: inline-block;
+	  padding: 0px;
+	  margin: 0px;
+      background-image:url("1.png");
+    }
+	#catescape .clicked {
+      background-image:url("2.png");
+	}
+	#catescape .cat {
+      background-image:url("3.png");	
+	}
+	#catescape .padding {
+	  padding-left:25px;
+	}
+	#catescape .mark {
+	  float: left;
+      width: 50px;
+      height: 50px;
+	  line-height: 50px;
+	  text-align: center;
+	}
+	#crazycat {
+	  position:absolute;
+	  margin-top: -15px;
+	  margin-left: 0px;
+	  animation: catrun 1s steps(4) infinite;
+      -moz-animation: catrun 1s steps(4) infinite; /* Firefox */
+      -webkit-animation: catrun 1s steps(4) infinite; /* Safari and Chrome */
+      -o-animation: catrun 1s steps(4) infinite; /* Opera */
+	  z-index: 10;
+	  float: left;
+	  width: 50px;
+	  height: 75px;
+	  background-image:url("stay.png");
+	}
+	@keyframes catrun {
+      from   {background-position: 0px 0px;}
+      to {background-position: -240px -376px;}
+    }
+	@-moz-keyframes catrun /* Firefox */ {
+      from   {background-position: 0px 0px;}
+      to {background-position: -240px -376px;}
+	}
+	@-webkit-keyframes catrun /* Safari and Chrome */ {
+      from   {background-position: 0px 0px;}
+      to {background-position: -240px -376px;}
+    }
+	@-o-keyframes catrun /* Opera */ {
+      from   {background-position: 0px 0px;}
+      to {background-position: -240px -376px;}
+    }
+  </style>
+</head>
+<body style="padding: 0px; border: 0px; margin: 0px;">
+  <div style="display:inline-block;width:100%;height:auto;background-color:#000000;">
+    <!--div>
+      <button id="reset"> Reset </button>
+	  <button id="showmark"> Show Mark </button>
+    </div>
+	<div>
+	  <div id="order"> Current Order: <span> ai </span></div> 
+	</div-->
+	<div style='width:640px;height:800px;margin:0 auto;background-image:url("bg.jpg");'>
+      <div id="catescape"> 
+	  </div>
+      <div id="startcover" style='top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
+	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
+		  <div>
+  	        <p style="font-size:80px;margin:0;"> 你们天天围猫，考虑过猫的感受吗！！！！！ </p>
+		  </div>
+		  <div style='width:100%;text-align:center;'>
+		    <button id="startgame" style='width:400px;height:100px;font-size:60px;margin-top: 80px;'> 点我感受一下 </button>
+		  </div>
+		</div>
+      </div>
+      <div id="endcover" style='display:none;top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
+	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
+		  <div>
+  	        <p style="font-size:80px;margin:0;"> 怎么样啊，被围住的感觉爽吗！！！！！ </p>
+		  </div>
+		  <div style='width:100%;text-align:center;'>
+		    <button id="replaygame" style='width:400px;height:100px;font-size:60px;margin-top: 80px;'> 再感受一次 </button>
+		  </div>
+		</div>
+      </div>
+      <div id="wincover" style='display:none;top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
+	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
+		  <div>
+  	        <p style="font-size:80px;margin:0;"> 小样，居然跑出去了，敢再来一次不！！！！！ </p>
+		  </div>
+		  <div style='width:100%;text-align:center;'>
+		    <button id="wingame" style='width:400px;height:100px;font-size:60px;margin-top: 80px;'> 再感受一次 </button>
+		  </div>
+		</div>
+      </div>    
+      <div id="movecover" style='display:none;top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
+	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
+		  <div>
+  	        <p style="font-size:80px;margin:0;"> 你以为你是神猫啊，一次只能移一格，已经被占的位置不能再点！！！！！ </p>
+		  </div>
+		  <div style='width:100%;text-align:center;'>
+		    <button id="movegame" style='width:460px;height:100px;font-size:60px;margin-top: 80px;'> 我知道了，继续 </button>
+		  </div>
+		</div>
+      </div>    
+	</div>
+  </div>
+</body>
+</html>

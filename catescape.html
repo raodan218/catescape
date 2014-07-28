@@ -1,16 +1,13 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 <html>
 <head>
-  <title> Cat Escape </title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="full-screen" content="true"/>
-  <meta name="screen-orientation" content="portrait"/>
-  <meta name="x5-fullscreen" content="true"/>
-  <meta name="360-fullscreen" content="true"/>
-
+  <title> 神经猫逃离，玻璃心都碎了，你们自己感受一下！！！ </title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=0.67, minimum-scale=0.67, maximum-scale=0.67"/>
+  <!--link rel="stylesheet" href="jquery.mobile-1.4.3.min.css"/-->
   <script type='text/javascript' src="jquery-1.11.1.min.js"></script>
+  <!--script type='text/javascript' src="jquery.mobile-1.4.3.min.js"></script-->  
+    
   <script type='text/javascript'> 
   
   // Map position X start from 0 from left
@@ -258,12 +255,14 @@
       var target = new Block(targetX, targetY);
 	  if (target.isClicked()) {
 	    //alert("Can't move to clicked block!");
-        $("#movecover").show();
+        $("#continuecover").show();
+        $("#catescape").hide();
 		return false;
 	  }
 	  if (this.stepToBlock(target) > 1) {
 	    //alert("you cat only move to nearby block!");
-	    $("#movecover").show();
+	    $("#continuecover").show();
+        $("#catescape").hide();
         return false;
 	  }
 	  return true;
@@ -408,6 +407,7 @@
 		if (empty.length <= 0) {
 		  //alert("No way out!");
 		  $("#endcover").show();
+          $("#catescape").hide();
 		  return;
 		}
 	    //clearBlockStepMark();
@@ -425,7 +425,8 @@
         //alert("Error!");
 	    initBlock();
 		$("#startcover").show();
-		return;
+		$("#catescape").hide();
+        return;
 	  }	
 	  nextBlock.setClicked();
 	}; 
@@ -494,6 +495,7 @@
 	  if (new Block(targetX, targetY).isBoundaryBlock()) {
 	    //alert("You win!");
 	    $("#wincover").show();
+        $("#catescape").hide();
 		return;
 	  }
       setCurrentOrder("ai");
@@ -709,17 +711,21 @@
     });
     $("#startgame").click(function(){
       $("#startcover").hide();
+      $("#catescape").show();
     });
 	$("#replaygame").click(function(){
       $("#endcover").hide();
+      $("#catescape").show();
 	  initBlock();
     });
 	$("#wingame").click(function(){
       $("#wincover").hide();
+      $("#catescape").show();
 	  initBlock();
     });
-	$("#movegame").click(function(){
-      $("#movecover").hide();
+	$("#continuegame").click(function(){
+      $("#continuecover").hide();
+      $("#catescape").show();
     });
 	
 	initBlock();
@@ -727,8 +733,23 @@
   });
   </script>
   <style>
+    body {
+      padding: 0;
+      border: 0;
+      margin: 0;
+      background: #000000;
+    }
+    #content {
+      margin: 0 auto;
+      width: 480px;
+      height: 720px;
+      background-image: url("bg.jpg");
+      background-position: 0px -40px;
+      background-size: 480px 800px;
+    }
     #catescape {
-	  padding: 340px 0px 0px 80px;
+	  padding: 220px 0px 0px 0px;
+      display: none;
 	}
     #catescape ul {
 	  padding: 0px;
@@ -773,6 +794,23 @@
 	  height: 75px;
 	  background-image:url("stay.png");
 	}
+    .cover {
+      width:480px;
+      height:720px;
+      background-color:#FFFFFF;
+      opacity:1;
+    }
+    .cover p {
+      text-align: left;
+      font-size:48px; 
+      margin:0; 
+      padding:40px;
+    }
+    .cover button {
+      font-size:48px; 
+      margin-top:80px; 
+      padding: 20px;
+    }
 	@keyframes catrun {
       from   {background-position: 0px 0px;}
       to {background-position: -240px -376px;}
@@ -791,56 +829,40 @@
     }
   </style>
 </head>
-<body style="padding: 0px; border: 0px; margin: 0px;">
-  <div style="display:inline-block;width:100%;height:auto;background-color:#000000;">
-    <!--div>
-      <button id="reset"> Reset </button>
-	  <button id="showmark"> Show Mark </button>
-    </div>
-	<div>
-	  <div id="order"> Current Order: <span> ai </span></div> 
-	</div-->
-	<div style='width:640px;height:800px;margin:0 auto;background-image:url("bg.jpg");'>
-      <div id="catescape"> 
-	  </div>
-      <div id="startcover" style='top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
-	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
-		  <div>
-  	        <p style="font-size:80px;margin:0;"> 你们天天围猫，考虑过猫的感受吗！！！！！ </p>
-		  </div>
-		  <div style='width:100%;text-align:center;'>
-		    <button id="startgame" style='width:400px;height:100px;font-size:60px;margin-top: 80px;'> 点我感受一下 </button>
-		  </div>
+<body>
+  <div data-role="page" >
+    <div role="main" id="content" class="content">
+      <div id="catescape">  </div>
+	  <div id="startcover" class="cover">
+		<div>
+          <p> 你们天天围猫，考虑过猫的感受吗！</p>
+		</div>
+        <div style="width:100%;text-align:center;">
+            <button id="startgame"> 点我感受一下 </button>
+	    </div>
+      </div>
+      <div id="endcover" class="cover" style="display:none;">
+		<div>
+  	      <p> 怎么样啊，被围住的感觉爽吗！！！</p>
+		</div>
+		<div style='width:100%;text-align:center;'>
+		  <button id="replaygame"> 再感受一次 </button>
 		</div>
       </div>
-      <div id="endcover" style='display:none;top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
-	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
+      <div id="wincover" class="cover" style="display:none;">
 		  <div>
-  	        <p style="font-size:80px;margin:0;"> 怎么样啊，被围住的感觉爽吗！！！！！ </p>
+  	        <p> 小样，居然跑出去了，敢再来一次不！！！！！ </p>
 		  </div>
 		  <div style='width:100%;text-align:center;'>
-		    <button id="replaygame" style='width:400px;height:100px;font-size:60px;margin-top: 80px;'> 再感受一次 </button>
+		    <button id="wingame"> 再感受一次 </button>
 		  </div>
-		</div>
-      </div>
-      <div id="wincover" style='display:none;top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
-	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
-		  <div>
-  	        <p style="font-size:80px;margin:0;"> 小样，居然跑出去了，敢再来一次不！！！！！ </p>
-		  </div>
-		  <div style='width:100%;text-align:center;'>
-		    <button id="wingame" style='width:400px;height:100px;font-size:60px;margin-top: 80px;'> 再感受一次 </button>
-		  </div>
-		</div>
       </div>    
-      <div id="movecover" style='display:none;top:0;left:0;position:absolute;width:100%;height:800px;z-index:200;'>
-	    <div style='margin:0 auto;width:640px;height:800px;background-color:#FFFFFF;opacity:1;'>
-		  <div>
-  	        <p style="font-size:80px;margin:0;"> 你以为你是神猫啊，一次只能移一格，已经被占的位置不能再点！！！！！ </p>
-		  </div>
-		  <div style='width:100%;text-align:center;'>
-		    <button id="movegame" style='width:460px;height:100px;font-size:60px;margin-top: 80px;'> 我知道了，继续 </button>
-		  </div>
+      <div id="continuecover" class="cover" style='display:none;'>
+		<div>
+  	      <p> 你是神经猫，不是神猫，一次只能移一格，已经被占的位置不能再点！！ </p>
+		</div>
+		<div style='width:100%;text-align:center;'>
+		  <button id="continuegame"> 别废话，继续 </button>
 		</div>
       </div>    
 	</div>

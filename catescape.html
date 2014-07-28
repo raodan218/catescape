@@ -25,6 +25,23 @@
   // Matrix dimension should be odd
   var MATRIX_DIMENSION=9;
   
+  var BLOCK_DIRECTION_UNKNOWN = 0;
+  var BLOCK_DIRECTION_TOP_LEFT = 1;
+  var BLOCK_DIRECTION_TOP_RIGHT = 2;
+  var BLOCK_DIRECTION_RIGHT = 3;
+  var BLOCK_DIRECTION_BOTTOM_RIGHT = 4;
+  var BLOCK_DIRECTION_BOTTOM_LEFT = 5;
+  var BLOCK_DIRECTION_LEFT = 6;
+
+  var LINE_DIRECTION_UNKNOWN = 0;
+  var LINE_DIRECTION_TOP = 1;
+  var LINE_DIRECTION_TOP_RIGHT = 2;
+  var LINE_DIRECTION_BOTTOM_RIGHT = 3;
+  var LINE_DIRECTION_BOTTOM = 4;
+  var LINE_DIRECTION_BOTTOM_LEFT = 5;
+  var LINE_DIRECTION_TOP_LEFT = 6;
+  
+  
   // Class to present the block
   function Block(x, y) {
 
@@ -44,7 +61,12 @@
 	};
 	
 	this.isClicked = function () {
-	  return this.dom.hasClass("clicked");
+      if (this.dom != null) {
+	    return this.dom.hasClass("clicked");
+	  }
+	  else {
+	    return false;
+	  }
 	};
 	
 	this.setClicked = function () {
@@ -60,9 +82,9 @@
 	  return false;
 	};
 	
-	this.mark = function(step) {
+	this.mark = function(text) {
       if (this.dom != null) {
-        this.dom.html('<div class="mark">' + step + '</div>');
+        this.dom.html('<div class="mark">' + text + '</div>');
       }
 	};
 	
@@ -206,25 +228,140 @@
 	  return hexagon;
 	};
 
+	// Return the step from this block to target
 	this.stepToBlock = function(target) {
 	  var step = Math.abs(target.y - this.y);
-	  do {
-	      var hexagon = this.getHexagon(step);
-		  for (var i=0; i<hexagon.length; ++i) {
-		     if (hexagon[i].x == target.x && hexagon[i].y == target.y) {
-			   break;
-			 }
-		  }
-		  if (i == hexagon.length) {
-		    ++step;
-		  }
-		  else {
-		    break;
-		  }
-	  } while (true);  
+	  if (this.y == target.y) {
+	     step = Math.abs(this.x - target.x);
+	  }
+	  else if (this.y > target.y) {
+	    // Top line
+	    var topLeftBlock = this.getTopLeftBlock(step);
+		var topRightBlock = this.getTopRightBlock(step);
+		if (target.x <= topLeftBlock.x) {
+		  step = topLeftBlock.x - target.x + step;
+		}
+		else if (target.x >= topRightBlock.x) {
+		  step = target.x - topRightBlock.x + step;
+		}
+	  }
+	  else if (this.y < target.y) {
+	    // Bottom line
+		var bottomLeftBlock = this.getBottomLeftBlock(step);
+		var bottomRightBlock = this.getBottomRightBlock(step);
+	    if (target.x <= bottomLeftBlock.x) {
+		  step = bottomLeftBlock.x - target.x + step;
+		}
+		else if (target.x >= bottomRightBlock.x) {
+		  step = target.x - bottomRightBlock.x + step;
+		}
+	  }
 	  return step;
 	};
+
+	this.getTargetLineDirection = function (target) {
+	  var step = this.stepToBlock(target);
+	  var lineDirection = LINE_DIRECTION_UNKNOWN;
+	  if (this.y == target.y) {
+	     // Left or right line
+		 if (this.x > target.x) {
+		   // Top left line 
+		   lineDirection = LINE_DIRECTION_TOP_LEFT;
+		 }
+		 else if (this.x < target.x) {
+		   // Top right line
+		   lineDirection = LINE_DIRECTION_TOP_RIGHT;
+		 }
+	  }
+	  else if (this.y > target.y) {
+	    // Top or left or right line
+	    var topLeftBlock = this.getTopLeftBlock(step);
+		var topRightBlock = this.getTopRightBlock(step);
+		if (target.x <= topLeftBlock.x) {
+		   // Top left line
+		   lineDirection = LINE_DIRECTION_TOP_LEFT;
+		}
+		else if (target.x >= topRightBlock.x) {
+		  // Top right line
+		  lineDirection = LINE_DIRECTION_TOP_RIGHT;
+		}
+		else {
+		  // Top line
+		  lineDirection = LINE_DIRECTION_TOP;
+		}
+	  }
+	  else if (this.y < target.y) {
+	    // Bottom or left or right line
+		var bottomLeftBlock = this.getBottomLeftBlock(step);
+		var bottomRightBlock = this.getBottomRightBlock(step);
+	    if (target.x <= bottomLeftBlock.x) {
+		  // Bottom left line
+		   lineDirection = LINE_DIRECTION_BOTTOM_LEFT;
+		}
+		else if (target.x >= bottomRightBlock.x) {
+		  // Bottom right line
+		   lineDirection = LINE_DIRECTION_BOTTOM_RIGHT;
+		}
+		else {
+		  // Bottom line
+		   lineDirection = LINE_DIRECTION_BOTTOM;
+		}
+	  }
+	  return lineDirection;
+	};
 	
+	// Return the line where target block on
+    this.blockToLine = function (target) {
+      var step = this.stepToBlock(target);
+	  var line = null;
+	  if (this.y == target.y) {
+	     // Left or right line
+		 if (this.x > target.x) {
+		   // Top left line 
+		   line = this.getTopLeftLine(step);
+		 }
+		 else if (this.x < target.x) {
+		   // Top right line
+		   line = this.getTopRightLine(step);
+		 }
+	  }
+	  else if (this.y > target.y) {
+	    // Top or left or right line
+	    var topLeftBlock = this.getTopLeftBlock(step);
+		var topRightBlock = this.getTopRightBlock(step);
+		if (target.x <= topLeftBlock.x) {
+		   // Top lef line
+		   line = this.getTopLeftLine(step);
+		}
+		else if (target.x >= topRightBlock.x) {
+		  // Top right line
+		  line = this.getTopRightLine(step);
+		}
+		else {
+		  // Top line
+		  line = this.getTopLine(step);
+		}
+	  }
+	  else if (this.y < target.y) {
+	    // Bottom or left or right line
+		var bottomLeftBlock = this.getBottomLeftBlock(step);
+		var bottomRightBlock = this.getBottomRightBlock(step);
+	    if (target.x <= bottomLeftBlock.x) {
+		  // Bottom left line
+		   line = this.getBottomLeftLine(step);
+		}
+		else if (target.x >= bottomRightBlock.x) {
+		  // Bottom right line
+		   line = this.getBottomRightLine(step);
+		}
+		else {
+		  // Bottom line
+		   line = this.getBottomLine(step);
+		}
+	  }
+      return line;
+	};
+
 	this.getShortestStep = function() {
       var shortestX = (this.x) < (MATRIX_DIMENSION-1-this.x) ? this.x : (MATRIX_DIMENSION-1-this.x);
 	  var shortestY = (this.y) < (MATRIX_DIMENSION-1-this.y) ? this.y : (MATRIX_DIMENSION-1-this.y);
@@ -251,60 +388,19 @@
 	  return longestStep;
 	};
 
+	// Check wether cat can move to target 
 	this.checkTarget = function (targetX, targetY){
       var target = new Block(targetX, targetY);
 	  if (target.isClicked()) {
 	    //alert("Can't move to clicked block!");
-        $("#continuecover").show();
-        $("#catescape").hide();
 		return false;
 	  }
 	  if (this.stepToBlock(target) > 1) {
 	    //alert("you cat only move to nearby block!");
-	    $("#continuecover").show();
-        $("#catescape").hide();
         return false;
 	  }
 	  return true;
     };
-	
-	this.blockToLine = function (target) {
-	  var step = this.stepToBlock(target);
-	  var line = null;
-	  do {
-	    var topLine = this.getTopLine(step);
-		if (isBlockOnLine(target, topLine)){
-		  line = topLine;
-		  break;
-		}
-	    var topRightLine = this.getTopRightLine(step);
-		if (isBlockOnLine(target, topRightLine)){
-		  line = topRightLine;
-		  break;
-		}
-	    var bottomRightLine = this.getBottomRightLine(step);
-		if (isBlockOnLine(target, bottomRightLine)){
-		  line = bottomRightLine;
-		  break;
-		}
-	    var bottomLine = this.getBottomLine(step);
-		if (isBlockOnLine(target, bottomLine)){
-		  line = bottomLine;
-		  break;
-		}
-	    var bottomLeftLine = this.getBottomLeftLine(step);
-		if (isBlockOnLine(target, bottomLeftLine)){
-		  line = bottomLeftLine;
-		  break;
-		}
-	    var topLeftLine = this.getTopLeftLine(step);
-		if (isBlockOnLine(target, topLeftLine)){
-		  line = topLeftLine;
-		  break;
-		}
-	  } while (false);
-      return line;
-	};
 
     this.pathToBlock = function (target) {
 	  var step = this.stepToBlock(target);
@@ -358,35 +454,222 @@
 	  var topLeftLine = checkBoundaryLine(this.getTopLeftLine(step));
 	  line = topLine;
 	  count =  topLine.length;
-	  if (count < bottomLine.length) {
-	    line = bottomLine;
-		count = bottomLine.length;
+	  countOfPath = this.checkDirectionWayout(LINE_DIRECTION_TOP, step);
+	  nextCountOfPath = this.checkDirectionWayout(LINE_DIRECTION_BOTTOM, step);
+//console.debug("topLine: " + count + " " + countOfPath);
+//console.debug("bottomLine: " + bottomLine.length + " " + nextCountOfPath);
+	  if (nextCountOfPath > 0) {
+	    if (count < bottomLine.length) {
+	      line = bottomLine;
+		  count = bottomLine.length;
+	    }
+	    else if (count == bottomLine.length && countOfPath < nextCountOfPath) {
+		  line = bottomLine;
+	      countOfPath = nextCountOfPath;
+	    }
+      }
+	  nextCountOfPath = this.checkDirectionWayout(LINE_DIRECTION_TOP_RIGHT, step);
+//console.debug("topRightLine: " + topRightLine.length + " " + nextCountOfPath);
+	  if (nextCountOfPath > 0) {
+	    if (count < topRightLine.length) {
+	      line = topRightLine;
+		  count = topRightLine.length;
+	    }
+		else if (count == topRightLine.length && countOfPath < nextCountOfPath) {
+		  line = topRightLine;
+		  countOfPath = nextCountOfPath;
+		}
 	  }
-	  if (count < topRightLine.length) {
-	    line = topRightLine;
-		count = topRightLine.length;
+	  nextCountOfPath = this.checkDirectionWayout(LINE_DIRECTION_BOTTOM_RIGHT, step);
+//console.debug("bottomRightLine: " + bottomRightLine.length + " " + nextCountOfPath);
+	  if (nextCountOfPath > 0) {
+	    if (count < bottomRightLine.length) {
+	      line = bottomRightLine;
+		  count = bottomRightLine.length;
+	    }
+		else if (count == bottomRightLine.length && countOfPath < nextCountOfPath){
+		  line = bottomRightLine;
+		  countOfPath = nextCountOfPath;
+		}
 	  }
-	  if (count < bottomRightLine.length) {
-	    line = bottomRightLine;
-		count = bottomRightLine.length;
+	  nextCountOfPath = this.checkDirectionWayout(LINE_DIRECTION_BOTTOM_LEFT, step);
+//console.debug("bottomLeftLine: " + bottomLeftLine.length + " " + nextCountOfPath);
+	  if (nextCountOfPath > 0) {
+	    if (count < bottomLeftLine.length) {
+	      line = bottomLeftLine;
+		  count = bottomLeftLine.length;
+	    }
+		else if (count == bottomLeftLine.length && countOfPath < nextCountOfPath) {
+		  line = bottomLeftLine;
+		  countOfPath = nextCountOfPath;
+		}
 	  }
-	  if (count < bottomLeftLine.length) {
-	    line = bottomLeftLine;
-		count = bottomLeftLine.length;
+	  nextCountOfPath = this.checkDirectionWayout(LINE_DIRECTION_TOP_LEFT, step);
+//console.debug("topLeftLine: " + topLeftLine.length + " " + nextCountOfPath);
+	  if (nextCountOfPath > 0) {
+	    if (count < topLeftLine.length) {
+	      line = topLeftLine;
+		  count = topLeftLine.length;
+	    }
+		else if (count == topLeftLine.length && countOfPath < nextCountOfPath) {
+		  line = topLeftLine;
+		  countOfPath = nextCountOfPath;
+		}
 	  }
-	  if (count < topLeftLine.length) {
-	    line = topLeftLine;
-		count = topLeftLine.length;
-	  }
-	  
 	  return line;
 	}
 	
+	this.nextClickedLine = function (step) {
+	  var nextLine = new Object();
+	  
+	  var topLine = this.getTopLine(step);
+	  var topLineEmptyBlocks = getEmptyBlocksOfLine(topLine);
+	  nextLine.direction = LINE_DIRECTION_TOP;
+	  nextLine.line = topLineEmptyBlocks;
+
+	  var topRightLine = this.getTopRightLine(step);
+	  var topRightLineEmptyBlocks = getEmptyBlocksOfLine(topRightLine);
+	  if (topRightLineEmptyBlocks.length > nextLine.line.length) {
+        nextLine.direction = LINE_DIRECTION_TOP_RIGHT;
+	    nextLine.line = topRightLineEmptyBlocks;
+	  }
+	  
+	  var bottomRightLine = this.getBottomRightLine(step);
+	  var bottomRightLineEmptyBlocks = getEmptyBlocksOfLine(bottomRightLine);
+	  if (bottomRightLineEmptyBlocks.length > nextLine.line.length) {
+        nextLine.direction = LINE_DIRECTION_BOTTOM_RIGHT;
+	    nextLine.line = bottomRightLineEmptyBlocks;
+	  }
+	  
+	  var bottomLine = this.getBottomLine(step);
+	  var bottomLineEmptyBlocks = getEmptyBlocksOfLine(bottomLine);
+	  if (bottomLineEmptyBlocks.length > nextLine.line.length) {
+        nextLine.direction = LINE_DIRECTION_BOTTOM;
+	    nextLine.line = bottomLineEmptyBlocks;
+	  }
+	  
+	  var bottomLeftLine = this.getBottomLeftLine(step);
+	  var bottomLeftLineEmptyBlocks = getEmptyBlocksOfLine(bottomLeftLine);
+	  if (bottomLeftLineEmptyBlocks.length > nextLine.line.length) {
+        nextLine.direction = LINE_DIRECTION_BOTTOM_LEFT;
+	    nextLine.line = bottomLeftLineEmptyBlocks;
+	  }
+
+	  var topLeftLine = this.getTopLeftLine(step);
+	  var topLeftLineEmptyBlocks = getEmptyBlocksOfLine(topLeftLine);
+	  if (topLeftLineEmptyBlocks.length > nextLine.line.length) {
+        nextLine.direction = LINE_DIRECTION_TOP_LEFT;
+	    nextLine.line = topLeftLineEmptyBlocks;
+	  }
+	  
+	  if (nextLine.line.length < step) {
+	    return nextClickedLine(step -1);
+	  }
+ 	  
+	  return nextLine;
+	};
+	
+	// ==0: no way out, >0: has way out
+	this.checkDirectionWayout = function (direction, step) {
+	  var line = null;
+	  var countOfPath = 0;
+	  if (LINE_DIRECTION_TOP == direction) {
+	    line = this.getTopLine(step);
+	  }
+	  else if (LINE_DIRECTION_TOP_RIGHT == direction) {
+	    line = this.getTopRightLine(step);
+	  }
+	  else if (LINE_DIRECTION_BOTTOM_RIGHT == direction) {
+	    line = this.getBottomRightLine(step);
+	  }
+	  else if (LINE_DIRECTION_BOTTOM == direction) {
+	    line = this.getBottomLine(step);
+	  }
+	  else if (LINE_DIRECTION_BOTTOM_LEFT == direction) {
+	    line = this.getBottomLeftLine(step);
+	  }
+	  else if (LINE_DIRECTION_TOP_LEFT == direction) {
+	    line = this.getTopLeftLine(step);
+	  }
+	  for (var i=0; i<line.length; ++i) {
+	    if (!line[i].isClicked()) {
+		  countOfPath +=this.pathToBlock(line[i]).length;
+		}
+	  }
+	  return countOfPath;
+	}
+	
+	// False: no way out, True: has way out
+	this.checkWayout = function () {
+	  var empty = getEmptyBoundaryBlocks();
+	  for (var i=0; i<empty.length; ++i) {
+	    if (this.pathToBlock(empty[i]).length > 0) {
+		  return true;
+		}
+	  }
+	  return false;
+	};
+	
+	// Return step one boundary blocks
+	this.getStepOneBoundaryBlocks = function () {
+	  var hexagon = this.getHexagon(1);
+	  var blocks = new Array();
+	  for (var i=0; i<hexagon.length; ++i) {
+	    if (!hexagon[i].isClicked() && hexagon[i].isBoundaryBlock()) {
+		  blocks.push(hexagon[i]);
+		}
+	  }
+	  return blocks;
+	};
+	
+	this.checkEndCondition = function () {
+      var hexagon = this.getHexagon(1);
+	  var clickedCount = 0;
+	  var emptyIndex = 0;
+	  for (var i=0; i<hexagon.length; ++i) {
+	    if (hexagon[i].isClicked()){
+		  ++clickedCount;
+		}
+		else {
+  	      emptyIndex = i;
+		}
+	  }
+	  if (clickedCount >=(hexagon.length-1)) {
+	    hexagon[emptyIndex].setClicked();
+		hexagon[emptyIndex].mark("A");
+		return true;
+	  }
+	  for (var i=0; i<hexagon.length; ++i) {
+		if (!hexagon[i].isClicked() && hexagon[i].isBoundaryBlock()) {
+		  hexagon[i].setClicked();
+		  hexagon[i].mark("A");
+		  return true;
+		}
+	  }
+	  for (var i=0; i<hexagon.length; ++i) {
+	    var stepOneBoundaryBlocks = hexagon[i].getStepOneBoundaryBlocks();
+		if ( stepOneBoundaryBlocks.length > 2) {
+		  hexagon[i].setClicked();
+		  hexagon[i].mark("A");
+	      return true;
+		}
+		else if (stepOneBoundaryBlocks.length == 2) {
+		  stepOneBoundaryBlocks[0].setClicked();
+		  stepOneBoundaryBlocks[0].mark("A");
+		  return true;
+		}
+      }
+	  return false;
+	};
+	
 	this.findBestWay = function () {
-	  var offsetX = this.x > Math.abs(MATRIX_DIMENSION - 1 - this.x ) ? Math.abs(MATRIX_DIMENSION - 1 - this.x ) : this.x;
+	  var nextBlock = null;
+	  if (this.checkEndCondition()) {
+	    return;
+	  }
+      var offsetX = this.x > Math.abs(MATRIX_DIMENSION - 1 - this.x ) ? Math.abs(MATRIX_DIMENSION - 1 - this.x ) : this.x;
 	  var offsetY = this.y > Math.abs(MATRIX_DIMENSION - 1 - this.y ) ? Math.abs(MATRIX_DIMENSION - 1 - this.y ) : this.y;
 	  var offset =  offsetX < offsetY ? offsetX : offsetY;
-	  var nextBlock = null;
 	  var line = this.getBoundaryLine(offset);
 	  if (line.length > 0) {
 	    var path = this.pathToBlock(line[0]);
@@ -413,12 +696,22 @@
 	    //clearBlockStepMark();
     	//markArea(empty, 'e');
 		var step = -1;
+		var paths = null;
 		for (var i=0;i<empty.length; ++i) {
 		  var t = this.stepToBlock(empty[i]);
+		  var p = this.pathToBlock(empty[i]);
+		  if (p.length <= 0) {
+		    continue;
+		  }
 		  if (step == -1 || (t<step)) {
 		    step = t;
+			paths = p;
 			nextBlock = empty[i];
 		  }
+		}
+		if (step > 1) {
+          var path = paths[0];
+		  nextBlock = path[path.length-2];
 		}
 	  }
 	  if (nextBlock == null) {
@@ -427,8 +720,9 @@
 		$("#startcover").show();
 		$("#catescape").hide();
         return;
-	  }	
+	  }
 	  nextBlock.setClicked();
+	  nextBlock.mark("A");
 	}; 
 	
   }
@@ -460,7 +754,7 @@
   
   // Initial postion of cat is in the center
   function initCat() {
-    var clickedBlockCount = 16;
+    var clickedBlockCount = 12;
     var initX = Math.floor(MATRIX_DIMENSION/2);
     var initY = Math.floor(MATRIX_DIMENSION/2);
     $("#catescape ul li").removeClass();
@@ -468,7 +762,7 @@
 	// Generate random clicked block
 	for (var i=0; i<clickedBlockCount; ++i) {
 	  var random = randomBlock();
-	  if (!random.isCat()) {
+	  if (!random.isCat() && !random.isClicked()) {
 	    random.setClicked();
 	  }
 	  else {
@@ -488,8 +782,16 @@
     var targetX = $(this).index();
     var targetY = $(this).parent().index();
     if (currentOrder == "cat") {
+      if (!getCatBlock().checkWayout()) {
+        //alert("No way out!");
+        $("#endcover").show();
+        $("#catescape").hide();
+        return;	  
+	  }
       if (!getCatBlock().checkTarget(targetX, targetY)) {
-	    return;
+	    $("#continuecover").show();
+        $("#catescape").hide();
+		return;
       }
       catMove(targetX, targetY);
 	  if (new Block(targetX, targetY).isBoundaryBlock()) {
@@ -507,7 +809,7 @@
     else if (currentOrder == "ai") {
       humanSetClickedBlock(targetX, targetY);
       return;
-	}  
+	}
   }
   
   function initBlock() {
@@ -589,6 +891,16 @@
 	}
 	return emptyBlocks;
   }
+  
+  function getEmptyBlocksOfLine(line) {
+    var emptyBlocksOfLine = new Array();
+	for (var i=0; i<line.length; ++i) {
+	  if (!line[i].isClicked()){
+	    emptyBlocksOfLine.push(line[i]);
+	  }
+	}
+	return emptyBlocksOfLine; 
+  }
 
   function getClickedBlocks() {
     var clickedBlocks = new Array();
@@ -604,13 +916,13 @@
   }
 
   function checkBoundaryLine(line) {
-    var emptyBlockOfLine = new Array();
+    var emptyBlocksOfLine = new Array();
 	for (var i=0; i<line.length; ++i) {
 	  if (line[i].isBoundaryBlock() && !line[i].isClicked()){
-	    emptyBlockOfLine.push(line[i]);
+	    emptyBlocksOfLine.push(line[i]);
 	  }
 	}
-	return emptyBlockOfLine;   
+	return emptyBlocksOfLine;   
   };
 
   function setCurrentOrder(order) {
